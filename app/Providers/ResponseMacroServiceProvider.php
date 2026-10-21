@@ -27,7 +27,7 @@ class ResponseMacroServiceProvider extends ServiceProvider
             if ($errors !== null) {
                 $response['error'] = $errors;
 
-                return response()->json($response, $statusCode);
+                return response()->json($response, $statusCode, [], JSON_UNESCAPED_UNICODE);
             }
 
             if ($data !== null) {
@@ -44,7 +44,7 @@ class ResponseMacroServiceProvider extends ServiceProvider
                 }
             }
 
-            return response()->json($response, $statusCode);
+            return response()->json($response, $statusCode, [], JSON_UNESCAPED_UNICODE);
         });
     }
 }

@@ -1,0 +1,880 @@
+{
+    "variable": [
+        {
+            "id": "baseUrl",
+            "key": "baseUrl",
+            "type": "string",
+            "value": "http:\/\/localhost:8000"
+        },
+        {
+            "id": "token",
+            "key": "token",
+            "type": "string",
+            "value": ""
+        }
+    ],
+    "info": {
+        "name": "Order & Payment API Documentation",
+        "_postman_id": "08e06f78-000e-48d8-b303-86d5067e8adf",
+        "description": "REST API for managing orders and payments, with pluggable payment gateways, secured with JWT.",
+        "schema": "https:\/\/schema.getpostman.com\/json\/collection\/v2.1.0\/collection.json"
+    },
+    "item": [
+        {
+            "name": "Authentication",
+            "description": "\nRegister, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.\nLogin and register are limited to 5 requests per minute per IP.",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/auth\/register",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/auth\/register"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"name\":\"Ali Hassan\",\"email\":\"ali@example.com\",\"password\":\"secret123\",\"password_confirmation\":\"secret123\"}"
+                        },
+                        "description": "Create an account and receive a JWT straight away.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\n  \"status\": 201,\n  \"message\": \"Registered successfully\",\n  \"data\": {\n    \"user\": {\"id\": \"9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12\", \"name\": \"Ali Hassan\", \"email\": \"ali@example.com\", \"created_at\": \"2026-10-21T18:32:42.000000Z\"},\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 3600\n  }\n}",
+                            "name": "Registered"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"status\": 422,\n  \"message\": \"The email has already been taken.\",\n  \"error\": {\n    \"email\": [\"The email has already been taken.\"],\n    \"password\": [\"The password field must contain at least one number.\"]\n  }\n}",
+                            "name": "Validation error"
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\"status\": 429, \"message\": \"Too many requests, please try again later\"}",
+                            "name": "Too many attempts"
+                        }
+                    ]
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/auth\/login",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/auth\/login"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"email\":\"ali@example.com\",\"password\":\"secret123\"}"
+                        },
+                        "description": "Exchange email and password for a JWT.",
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Logged in successfully\",\n  \"data\": {\n    \"user\": {\"id\": \"9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12\", \"name\": \"Ali Hassan\", \"email\": \"ali@example.com\", \"created_at\": \"2026-10-21T18:32:42.000000Z\"},\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 3600\n  }\n}",
+                            "name": "Logged in"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Invalid email or password\"}",
+                            "name": "Wrong email or password"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"The email field is required.\", \"error\": {\"email\": [\"The email field is required.\"]}}",
+                            "name": "Validation error"
+                        },
+                        {
+                            "header": [],
+                            "code": 429,
+                            "body": "{\"status\": 429, \"message\": \"Too many requests, please try again later\"}",
+                            "name": "Too many attempts"
+                        }
+                    ]
+                },
+                {
+                    "name": "Refresh token",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/auth\/refresh",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/auth\/refresh"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Exchange the current token (even an expired one, inside the refresh window) for a new one.\nThe old token stops working."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Token refreshed successfully\",\n  \"data\": {\n    \"user\": {\"id\": \"9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12\", \"name\": \"Ali Hassan\", \"email\": \"ali@example.com\", \"created_at\": \"2026-10-21T18:32:42.000000Z\"},\n    \"token\": \"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZXcifQ.signature\",\n    \"token_type\": \"bearer\",\n    \"expires_in\": 3600\n  }\n}",
+                            "name": "Refreshed"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Token missing, invalid or already used"
+                        }
+                    ]
+                },
+                {
+                    "name": "Current user",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/auth\/me",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/auth\/me"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Return the user who owns the token."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": {\"id\": \"9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12\", \"name\": \"Ali Hassan\", \"email\": \"ali@example.com\", \"created_at\": \"2026-10-21T18:32:42.000000Z\"}\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        }
+                    ]
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/auth\/logout",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/auth\/logout"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Invalidate the current token."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"status\": 200, \"message\": \"Logged out successfully\"}",
+                            "name": "Logged out"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Orders",
+            "description": "\nCreate and manage your orders. You only ever see and change your own orders.\n\nStatus flow: `pending` \u2192 `confirmed` or `cancelled`; `confirmed` \u2192 `cancelled` (only while unpaid).\nCustomer details and items can only change while the order is `pending`.",
+            "item": [
+                {
+                    "name": "List orders",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders",
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending",
+                                    "description": "Filter by status: `pending`, `confirmed` or `cancelled`.",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number. Defaults to 1.",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page, 1 to 100. Defaults to 15.",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders?status=pending&page=1&per_page=15"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Your orders, newest first, paginated."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": [\n    {\n      \"id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n      \"customer_name\": \"Ali Hassan\",\n      \"customer_email\": \"ali@example.com\",\n      \"customer_phone\": \"+201001234567\",\n      \"status\": \"pending\",\n      \"total\": \"60.07\",\n      \"items\": [\n        {\"id\": \"01a15fbc-af64-7190-8a65-6e8f95840565\", \"product_name\": \"Book\", \"quantity\": 3, \"price\": \"19.99\", \"subtotal\": \"59.97\"},\n        {\"id\": \"01a15fbc-af64-7190-8a65-6e8f95e6e532\", \"product_name\": \"Pen\", \"quantity\": 1, \"price\": \"0.10\", \"subtotal\": \"0.10\"}\n      ],\n      \"created_at\": \"2026-10-21T18:32:42.000000Z\",\n      \"updated_at\": \"2026-10-21T18:32:42.000000Z\"\n    }\n  ],\n  \"current_page\": 1,\n  \"from\": 1,\n  \"last_page\": 1,\n  \"per_page\": 15,\n  \"to\": 1,\n  \"total\": 1,\n  \"links\": {\n    \"first\": \"http:\/\/localhost:8000\/api\/v1\/orders?page=1\",\n    \"last\": \"http:\/\/localhost:8000\/api\/v1\/orders?page=1\",\n    \"prev\": null,\n    \"next\": null\n  }\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"The selected status is invalid.\", \"error\": {\"status\": [\"The selected status is invalid.\"]}}",
+                            "name": "Invalid filter"
+                        }
+                    ]
+                },
+                {
+                    "name": "Create an order",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"customer_name\":\"Ali Hassan\",\"customer_email\":\"ali@example.com\",\"customer_phone\":\"+201001234567\",\"items\":[{\"product_name\":\"Book\",\"quantity\":3,\"price\":19.99}]}"
+                        },
+                        "description": "The order starts as `pending`. Each item's subtotal and the order total are calculated on the server;\na `total` sent by the client is ignored."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\n  \"status\": 201,\n  \"message\": \"Created successfully\",\n  \"data\": {\n    \"id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"customer_name\": \"Ali Hassan\",\n    \"customer_email\": \"ali@example.com\",\n    \"customer_phone\": \"+201001234567\",\n    \"status\": \"pending\",\n    \"total\": \"59.97\",\n    \"items\": [\n      {\"id\": \"01a15fbc-af64-7190-8a65-6e8f95840565\", \"product_name\": \"Book\", \"quantity\": 3, \"price\": \"19.99\", \"subtotal\": \"59.97\"}\n    ],\n    \"created_at\": \"2026-10-21T18:32:42.000000Z\",\n    \"updated_at\": \"2026-10-21T18:32:42.000000Z\"\n  }\n}",
+                            "name": "Created"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"status\": 422,\n  \"message\": \"The customer name field is required.\",\n  \"error\": {\n    \"customer_name\": [\"The customer name field is required.\"],\n    \"items.0.quantity\": [\"The quantity of item #1 field must be at least 1.\"],\n    \"items.0.price\": [\"The price of item #1 field must have 0-2 decimal places.\"]\n  }\n}",
+                            "name": "Validation error"
+                        }
+                    ]
+                },
+                {
+                    "name": "Show an order",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                                    "description": "The order ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "One of your orders, with its items."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"customer_name\": \"Ali Hassan\",\n    \"customer_email\": \"ali@example.com\",\n    \"customer_phone\": \"+201001234567\",\n    \"status\": \"confirmed\",\n    \"total\": \"59.97\",\n    \"items\": [\n      {\"id\": \"01a15fbc-af64-7190-8a65-6e8f95840565\", \"product_name\": \"Book\", \"quantity\": 3, \"price\": \"19.99\", \"subtotal\": \"59.97\"}\n    ],\n    \"created_at\": \"2026-10-21T18:32:42.000000Z\",\n    \"updated_at\": \"2026-10-21T18:35:10.000000Z\"\n  }\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's order"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Order not found"
+                        }
+                    ]
+                },
+                {
+                    "name": "Update an order",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                                    "description": "The order ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"status\":\"confirmed\"}"
+                        },
+                        "description": "Send only the fields you want to change (at least one).\nSending `items` replaces all current items and recalculates the total.\nUse `status` to confirm or cancel the order."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Updated successfully\",\n  \"data\": {\n    \"id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"customer_name\": \"Ali Hassan\",\n    \"customer_email\": \"ali@example.com\",\n    \"customer_phone\": \"+201001234567\",\n    \"status\": \"confirmed\",\n    \"total\": \"59.97\",\n    \"items\": [\n      {\"id\": \"01a15fbc-af64-7190-8a65-6e8f95840565\", \"product_name\": \"Book\", \"quantity\": 3, \"price\": \"19.99\", \"subtotal\": \"59.97\"}\n    ],\n    \"created_at\": \"2026-10-21T18:32:42.000000Z\",\n    \"updated_at\": \"2026-10-21T18:35:10.000000Z\"\n  }\n}",
+                            "name": "Updated"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's order"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Order not found"
+                        },
+                        {
+                            "header": [],
+                            "code": 409,
+                            "body": "{\"status\": 409, \"message\": \"Only pending orders can have their details or items changed\"}",
+                            "name": "Order is not pending"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"Order status cannot change from confirmed to pending\"}",
+                            "name": "Status change not allowed"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"Send at least one field to update\", \"error\": {\"order\": [\"Send at least one field to update\"]}}",
+                            "name": "Empty update"
+                        }
+                    ]
+                },
+                {
+                    "name": "Delete an order",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                                    "description": "The order ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Deletes the order and its items. Orders that have any payment (even a failed one) cannot be deleted."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\"status\": 200, \"message\": \"Deleted successfully\"}",
+                            "name": "Deleted"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's order"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Order not found"
+                        },
+                        {
+                            "header": [],
+                            "code": 409,
+                            "body": "{\"status\": 409, \"message\": \"Order cannot be deleted because it has payments\"}",
+                            "name": "Order has payments"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Payments",
+            "description": "\nPay for confirmed orders and view payments. Gateways are simulated:\n\n- `credit_card`: a card number ending in `0002` is declined; any other card is approved.\n- `paypal`: an email ending in `@decline.test` is declined; any other email is approved.\n\nEvery payment request needs an `Idempotency-Key` header. Retrying with the same key returns the\noriginal payment (200) and never charges twice.",
+            "item": [
+                {
+                    "name": "List an order's payments",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders\/:order_id\/payments",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number. Defaults to 1.",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page, 1 to 100. Defaults to 15.",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders\/:order_id\/payments?page=1&per_page=15",
+                            "variable": [
+                                {
+                                    "id": "order_id",
+                                    "key": "order_id",
+                                    "value": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                                    "description": "The order ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "All payment attempts for one of your orders, including failed ones."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": [\n    {\n      \"id\": \"01a15fbc-b0c1-73f3-8faf-84d0b62179b8\",\n      \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n      \"payment_method\": \"credit_card\",\n      \"status\": \"successful\",\n      \"amount\": \"59.97\",\n      \"transaction_id\": \"cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13\",\n      \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"1111\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Approved\"},\n      \"created_at\": \"2026-10-21T18:40:05.000000Z\",\n      \"updated_at\": \"2026-10-21T18:40:05.000000Z\"\n    },\n    {\n      \"id\": \"01a15fbc-b08a-72c6-97db-9031a7da2a08\",\n      \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n      \"payment_method\": \"credit_card\",\n      \"status\": \"failed\",\n      \"amount\": \"59.97\",\n      \"transaction_id\": null,\n      \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"0002\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Card declined\"},\n      \"created_at\": \"2026-10-21T18:39:51.000000Z\",\n      \"updated_at\": \"2026-10-21T18:39:51.000000Z\"\n    }\n  ],\n  \"current_page\": 1,\n  \"from\": 1,\n  \"last_page\": 1,\n  \"per_page\": 15,\n  \"to\": 2,\n  \"total\": 2,\n  \"links\": {\n    \"first\": \"http:\/\/localhost:8000\/api\/v1\/orders\/01a15fbc-af62-704f-8643-f69b490d1ea9\/payments?page=1\",\n    \"last\": \"http:\/\/localhost:8000\/api\/v1\/orders\/01a15fbc-af62-704f-8643-f69b490d1ea9\/payments?page=1\",\n    \"prev\": null,\n    \"next\": null\n  }\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's order"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Order not found"
+                        }
+                    ]
+                },
+                {
+                    "name": "Pay for an order",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/orders\/:order_id\/payments",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/orders\/:order_id\/payments",
+                            "variable": [
+                                {
+                                    "id": "order_id",
+                                    "key": "order_id",
+                                    "value": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                                    "description": "The order ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Idempotency-Key",
+                                "value": "7f9c2e4a-1b3d-4e5f-8a6b-9c0d1e2f3a4b"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"payment_method\":\"credit_card\",\"details\":{\"card_number\":\"4111111111111111\",\"expiry_month\":12,\"expiry_year\":2030,\"cvv\":\"123\",\"holder_name\":\"Ali Hassan\"}}"
+                        },
+                        "description": "Charges a `confirmed` order through the chosen gateway for the order's full total.\nA declined payment is still saved (status `failed`, HTTP 201), and the order can be paid again with a new key.\n\nThe fields inside `details` depend on `payment_method`:\n- `credit_card`: `card_number`, `expiry_month`, `expiry_year`, `cvv`, `holder_name`\n- `paypal`: `paypal_email`"
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Payment completed successfully\",\n  \"data\": {\n    \"id\": \"01a15fbc-b0c1-73f3-8faf-84d0b62179b8\",\n    \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"payment_method\": \"credit_card\",\n    \"status\": \"successful\",\n    \"amount\": \"59.97\",\n    \"transaction_id\": \"cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13\",\n    \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"1111\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Approved\"},\n    \"created_at\": \"2026-10-21T18:40:05.000000Z\",\n    \"updated_at\": \"2026-10-21T18:40:05.000000Z\"\n  }\n}",
+                            "name": "Retry with the same Idempotency-Key"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\n  \"status\": 201,\n  \"message\": \"Payment completed successfully\",\n  \"data\": {\n    \"id\": \"01a15fbc-b0c1-73f3-8faf-84d0b62179b8\",\n    \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"payment_method\": \"credit_card\",\n    \"status\": \"successful\",\n    \"amount\": \"59.97\",\n    \"transaction_id\": \"cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13\",\n    \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"1111\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Approved\"},\n    \"created_at\": \"2026-10-21T18:40:05.000000Z\",\n    \"updated_at\": \"2026-10-21T18:40:05.000000Z\"\n  }\n}",
+                            "name": "Paid"
+                        },
+                        {
+                            "header": [],
+                            "code": 201,
+                            "body": "{\n  \"status\": 201,\n  \"message\": \"Payment was declined\",\n  \"data\": {\n    \"id\": \"01a15fbc-b08a-72c6-97db-9031a7da2a08\",\n    \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"payment_method\": \"credit_card\",\n    \"status\": \"failed\",\n    \"amount\": \"59.97\",\n    \"transaction_id\": null,\n    \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"0002\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Card declined\"},\n    \"created_at\": \"2026-10-21T18:39:51.000000Z\",\n    \"updated_at\": \"2026-10-21T18:39:51.000000Z\"\n  }\n}",
+                            "name": "Declined"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's order"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Order not found"
+                        },
+                        {
+                            "header": [],
+                            "code": 409,
+                            "body": "{\"status\": 409, \"message\": \"This order has already been paid\"}",
+                            "name": "Already paid"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"Payments can only be processed for confirmed orders\"}",
+                            "name": "Order not confirmed"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\n  \"status\": 422,\n  \"message\": \"The idempotency key field is required.\",\n  \"error\": {\n    \"idempotency_key\": [\"The idempotency key field is required.\"],\n    \"details.cvv\": [\"The details.cvv field is required.\"]\n  }\n}",
+                            "name": "Validation error"
+                        },
+                        {
+                            "header": [],
+                            "code": 422,
+                            "body": "{\"status\": 422, \"message\": \"The selected payment method is invalid.\", \"error\": {\"payment_method\": [\"The selected payment method is invalid.\"]}}",
+                            "name": "Unknown payment method"
+                        }
+                    ]
+                },
+                {
+                    "name": "List payments",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/payments",
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1",
+                                    "description": "Page number. Defaults to 1.",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "per_page",
+                                    "value": "15",
+                                    "description": "Items per page, 1 to 100. Defaults to 15.",
+                                    "disabled": false
+                                }
+                            ],
+                            "raw": "{{baseUrl}}\/api\/v1\/payments?page=1&per_page=15"
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "Payments across all your orders, newest first, paginated."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": [\n    {\n      \"id\": \"01a15fbc-b0c1-73f3-8faf-84d0b62179b8\",\n      \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n      \"payment_method\": \"credit_card\",\n      \"status\": \"successful\",\n      \"amount\": \"59.97\",\n      \"transaction_id\": \"cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13\",\n      \"gateway_response\": {\"gateway\": \"credit_card\", \"card_last4\": \"1111\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Approved\"},\n      \"created_at\": \"2026-10-21T18:40:05.000000Z\",\n      \"updated_at\": \"2026-10-21T18:40:05.000000Z\"\n    }\n  ],\n  \"current_page\": 1,\n  \"from\": 1,\n  \"last_page\": 1,\n  \"per_page\": 15,\n  \"to\": 1,\n  \"total\": 1,\n  \"links\": {\n    \"first\": \"http:\/\/localhost:8000\/api\/v1\/payments?page=1\",\n    \"last\": \"http:\/\/localhost:8000\/api\/v1\/payments?page=1\",\n    \"prev\": null,\n    \"next\": null\n  }\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        }
+                    ]
+                },
+                {
+                    "name": "Show a payment",
+                    "request": {
+                        "url": {
+                            "host": "{{baseUrl}}",
+                            "path": "api\/v1\/payments\/:id",
+                            "query": [],
+                            "raw": "{{baseUrl}}\/api\/v1\/payments\/:id",
+                            "variable": [
+                                {
+                                    "id": "id",
+                                    "key": "id",
+                                    "value": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+                                    "description": "The payment ID (UUID)."
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application\/json"
+                            },
+                            {
+                                "key": "Accept",
+                                "value": "application\/json"
+                            }
+                        ],
+                        "body": null,
+                        "description": "One payment that belongs to one of your orders."
+                    },
+                    "response": [
+                        {
+                            "header": [],
+                            "code": 200,
+                            "body": "{\n  \"status\": 200,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"01a15fbc-b0c1-73f3-8faf-84d0b62179b8\",\n    \"order_id\": \"01a15fbc-af62-704f-8643-f69b490d1ea9\",\n    \"payment_method\": \"paypal\",\n    \"status\": \"successful\",\n    \"amount\": \"59.97\",\n    \"transaction_id\": \"pp_a7619984-e5b5-4ad7-8ab7-00134378d34c\",\n    \"gateway_response\": {\"gateway\": \"paypal\", \"payer_email\": \"buyer@example.com\", \"amount\": \"59.97\", \"currency\": \"USD\", \"message\": \"Approved\"},\n    \"created_at\": \"2026-10-21T18:40:05.000000Z\",\n    \"updated_at\": \"2026-10-21T18:40:05.000000Z\"\n  }\n}",
+                            "name": "Success"
+                        },
+                        {
+                            "header": [],
+                            "code": 401,
+                            "body": "{\"status\": 401, \"message\": \"Unauthenticated, please login first\"}",
+                            "name": "Missing or invalid token"
+                        },
+                        {
+                            "header": [],
+                            "code": 403,
+                            "body": "{\"status\": 403, \"message\": \"You don't have permission to access this resource\"}",
+                            "name": "Someone else's payment"
+                        },
+                        {
+                            "header": [],
+                            "code": 404,
+                            "body": "{\"status\": 404, \"message\": \"Resource not found\"}",
+                            "name": "Payment not found"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "event": [
+        {
+            "listen": "test",
+            "script": {
+                "type": "text\/javascript",
+                "exec": [
+                    "try {",
+                    "    const body = pm.response.json();",
+                    "    if (body && body.data && body.data.token) {",
+                    "        pm.collectionVariables.set('token', body.data.token);",
+                    "    }",
+                    "} catch (e) {}"
+                ]
+            }
+        }
+    ]
+}

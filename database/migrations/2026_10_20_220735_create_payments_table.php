@@ -19,7 +19,10 @@ return new class extends Migration
             $table->decimal('amount', 12, 2);
             $table->string('transaction_id')->nullable()->unique();
             $table->json('gateway_response')->nullable();
+            $table->string('idempotency_key');
             $table->timestamps();
+
+            $table->unique(['order_id', 'idempotency_key']);
         });
     }
 

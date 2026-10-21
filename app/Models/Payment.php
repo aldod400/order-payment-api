@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'amount',
     'transaction_id',
     'gateway_response',
+    'idempotency_key',
 ])]
 class Payment extends Model
 {

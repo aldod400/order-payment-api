@@ -1,0 +1,2427 @@
+openapi: 3.0.3
+info:
+  title: 'Order & Payment API Documentation'
+  description: 'REST API for managing orders and payments, with pluggable payment gateways, secured with JWT.'
+  version: 1.0.0
+servers:
+  -
+    url: 'http://localhost:8000'
+tags:
+  -
+    name: Authentication
+    description: "\nRegister, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.\nLogin and register are limited to 5 requests per minute per IP."
+  -
+    name: Orders
+    description: "\nCreate and manage your orders. You only ever see and change your own orders.\n\nStatus flow: `pending` → `confirmed` or `cancelled`; `confirmed` → `cancelled` (only while unpaid).\nCustomer details and items can only change while the order is `pending`."
+  -
+    name: Payments
+    description: "\nPay for confirmed orders and view payments. Gateways are simulated:\n\n- `credit_card`: a card number ending in `0002` is declined; any other card is approved.\n- `paypal`: an email ending in `@decline.test` is declined; any other email is approved.\n\nEvery payment request needs an `Idempotency-Key` header. Retrying with the same key returns the\noriginal payment (200) and never charges twice."
+components:
+  securitySchemes:
+    default:
+      type: http
+      scheme: bearer
+      description: 'Get a JWT from <code>POST /api/v1/auth/register</code> or <code>POST /api/v1/auth/login</code>, then send it as <code>Authorization: Bearer {token}</code>.'
+security:
+  -
+    default: []
+paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register
+      operationId: register
+      description: 'Create an account and receive a JWT straight away.'
+      parameters: []
+      responses:
+        201:
+          description: Registered
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 201
+                  message: 'Registered successfully'
+                  data:
+                    user:
+                      id: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                      name: 'Ali Hassan'
+                      email: ali@example.com
+                      created_at: '2026-10-21T18:32:42.000000Z'
+                    token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature
+                    token_type: bearer
+                    expires_in: 3600
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: 'Registered successfully'
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                          name:
+                            type: string
+                            example: 'Ali Hassan'
+                          email:
+                            type: string
+                            example: ali@example.com
+                          created_at:
+                            type: string
+                            example: '2026-10-21T18:32:42.000000Z'
+                      token:
+                        type: string
+                        example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature
+                      token_type:
+                        type: string
+                        example: bearer
+                      expires_in:
+                        type: integer
+                        example: 3600
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 422
+                  message: 'The email has already been taken.'
+                  error:
+                    email:
+                      - 'The email has already been taken.'
+                    password:
+                      - 'The password field must contain at least one number.'
+                properties:
+                  status:
+                    type: integer
+                    example: 422
+                  message:
+                    type: string
+                    example: 'The email has already been taken.'
+                  error:
+                    type: object
+                    properties:
+                      email:
+                        type: array
+                        example:
+                          - 'The email has already been taken.'
+                        items:
+                          type: string
+                      password:
+                        type: array
+                        example:
+                          - 'The password field must contain at least one number.'
+                        items:
+                          type: string
+        429:
+          description: 'Too many attempts'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 429
+                  message: 'Too many requests, please try again later'
+                properties:
+                  status:
+                    type: integer
+                    example: 429
+                  message:
+                    type: string
+                    example: 'Too many requests, please try again later'
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 'Full name. Max 255 characters.'
+                  example: 'Ali Hassan'
+                email:
+                  type: string
+                  description: 'A unique email address.'
+                  example: ali@example.com
+                password:
+                  type: string
+                  description: 'At least 8 characters, with letters and numbers.'
+                  example: secret123
+                password_confirmation:
+                  type: string
+                  description: 'Must match `password`.'
+                  example: secret123
+              required:
+                - name
+                - email
+                - password
+                - password_confirmation
+      security: []
+  /api/v1/auth/login:
+    post:
+      summary: Login
+      operationId: login
+      description: 'Exchange email and password for a JWT.'
+      parameters: []
+      responses:
+        200:
+          description: 'Logged in'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Logged in successfully'
+                  data:
+                    user:
+                      id: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                      name: 'Ali Hassan'
+                      email: ali@example.com
+                      created_at: '2026-10-21T18:32:42.000000Z'
+                    token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature
+                    token_type: bearer
+                    expires_in: 3600
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Logged in successfully'
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                          name:
+                            type: string
+                            example: 'Ali Hassan'
+                          email:
+                            type: string
+                            example: ali@example.com
+                          created_at:
+                            type: string
+                            example: '2026-10-21T18:32:42.000000Z'
+                      token:
+                        type: string
+                        example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature
+                      token_type:
+                        type: string
+                        example: bearer
+                      expires_in:
+                        type: integer
+                        example: 3600
+        401:
+          description: 'Wrong email or password'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Invalid email or password'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Invalid email or password'
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 422
+                  message: 'The email field is required.'
+                  error:
+                    email:
+                      - 'The email field is required.'
+                properties:
+                  status:
+                    type: integer
+                    example: 422
+                  message:
+                    type: string
+                    example: 'The email field is required.'
+                  error:
+                    type: object
+                    properties:
+                      email:
+                        type: array
+                        example:
+                          - 'The email field is required.'
+                        items:
+                          type: string
+        429:
+          description: 'Too many attempts'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 429
+                  message: 'Too many requests, please try again later'
+                properties:
+                  status:
+                    type: integer
+                    example: 429
+                  message:
+                    type: string
+                    example: 'Too many requests, please try again later'
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  description: ''
+                  example: ali@example.com
+                password:
+                  type: string
+                  description: ''
+                  example: secret123
+              required:
+                - email
+                - password
+      security: []
+  /api/v1/auth/refresh:
+    post:
+      summary: 'Refresh token'
+      operationId: refreshToken
+      description: "Exchange the current token (even an expired one, inside the refresh window) for a new one.\nThe old token stops working."
+      parameters: []
+      responses:
+        200:
+          description: Refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Token refreshed successfully'
+                  data:
+                    user:
+                      id: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                      name: 'Ali Hassan'
+                      email: ali@example.com
+                      created_at: '2026-10-21T18:32:42.000000Z'
+                    token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZXcifQ.signature
+                    token_type: bearer
+                    expires_in: 3600
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Token refreshed successfully'
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                          name:
+                            type: string
+                            example: 'Ali Hassan'
+                          email:
+                            type: string
+                            example: ali@example.com
+                          created_at:
+                            type: string
+                            example: '2026-10-21T18:32:42.000000Z'
+                      token:
+                        type: string
+                        example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZXcifQ.signature
+                      token_type:
+                        type: string
+                        example: bearer
+                      expires_in:
+                        type: integer
+                        example: 3600
+        401:
+          description: 'Token missing, invalid or already used'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+      tags:
+        - Authentication
+  /api/v1/auth/me:
+    get:
+      summary: 'Current user'
+      operationId: currentUser
+      description: 'Return the user who owns the token.'
+      parameters: []
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    id: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                    name: 'Ali Hassan'
+                    email: ali@example.com
+                    created_at: '2026-10-21T18:32:42.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12
+                      name:
+                        type: string
+                        example: 'Ali Hassan'
+                      email:
+                        type: string
+                        example: ali@example.com
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:32:42.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+      tags:
+        - Authentication
+  /api/v1/auth/logout:
+    post:
+      summary: Logout
+      operationId: logout
+      description: 'Invalidate the current token.'
+      parameters: []
+      responses:
+        200:
+          description: 'Logged out'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Logged out successfully'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Logged out successfully'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+      tags:
+        - Authentication
+  /api/v1/orders:
+    get:
+      summary: 'List orders'
+      operationId: listOrders
+      description: 'Your orders, newest first, paginated.'
+      parameters:
+        -
+          in: query
+          name: status
+          description: 'Filter by status: `pending`, `confirmed` or `cancelled`.'
+          example: pending
+          required: false
+          schema:
+            type: string
+            description: 'Filter by status: `pending`, `confirmed` or `cancelled`.'
+            example: pending
+        -
+          in: query
+          name: page
+          description: 'Page number. Defaults to 1.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number. Defaults to 1.'
+            example: 1
+        -
+          in: query
+          name: per_page
+          description: 'Items per page, 1 to 100. Defaults to 15.'
+          example: 15
+          required: false
+          schema:
+            type: integer
+            description: 'Items per page, 1 to 100. Defaults to 15.'
+            example: 15
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    -
+                      id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      customer_name: 'Ali Hassan'
+                      customer_email: ali@example.com
+                      customer_phone: '+201001234567'
+                      status: pending
+                      total: '60.07'
+                      items:
+                        -
+                          id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                          product_name: Book
+                          quantity: 3
+                          price: '19.99'
+                          subtotal: '59.97'
+                        -
+                          id: 01a15fbc-af64-7190-8a65-6e8f95e6e532
+                          product_name: Pen
+                          quantity: 1
+                          price: '0.10'
+                          subtotal: '0.10'
+                      created_at: '2026-10-21T18:32:42.000000Z'
+                      updated_at: '2026-10-21T18:32:42.000000Z'
+                  current_page: 1
+                  from: 1
+                  last_page: 1
+                  per_page: 15
+                  to: 1
+                  total: 1
+                  links:
+                    first: 'http://localhost:8000/api/v1/orders?page=1'
+                    last: 'http://localhost:8000/api/v1/orders?page=1'
+                    prev: null
+                    next: null
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        customer_name: 'Ali Hassan'
+                        customer_email: ali@example.com
+                        customer_phone: '+201001234567'
+                        status: pending
+                        total: '60.07'
+                        items:
+                          -
+                            id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name: Book
+                            quantity: 3
+                            price: '19.99'
+                            subtotal: '59.97'
+                          -
+                            id: 01a15fbc-af64-7190-8a65-6e8f95e6e532
+                            product_name: Pen
+                            quantity: 1
+                            price: '0.10'
+                            subtotal: '0.10'
+                        created_at: '2026-10-21T18:32:42.000000Z'
+                        updated_at: '2026-10-21T18:32:42.000000Z'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        customer_name:
+                          type: string
+                          example: 'Ali Hassan'
+                        customer_email:
+                          type: string
+                          example: ali@example.com
+                        customer_phone:
+                          type: string
+                          example: '+201001234567'
+                        status:
+                          type: string
+                          example: pending
+                        total:
+                          type: string
+                          example: '60.07'
+                        items:
+                          type: array
+                          example:
+                            -
+                              id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                              product_name: Book
+                              quantity: 3
+                              price: '19.99'
+                              subtotal: '59.97'
+                            -
+                              id: 01a15fbc-af64-7190-8a65-6e8f95e6e532
+                              product_name: Pen
+                              quantity: 1
+                              price: '0.10'
+                              subtotal: '0.10'
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                                example: 01a15fbc-af64-7190-8a65-6e8f95840565
+                              product_name:
+                                type: string
+                                example: Book
+                              quantity:
+                                type: integer
+                                example: 3
+                              price:
+                                type: string
+                                example: '19.99'
+                              subtotal:
+                                type: string
+                                example: '59.97'
+                        created_at:
+                          type: string
+                          example: '2026-10-21T18:32:42.000000Z'
+                        updated_at:
+                          type: string
+                          example: '2026-10-21T18:32:42.000000Z'
+                  current_page:
+                    type: integer
+                    example: 1
+                  from:
+                    type: integer
+                    example: 1
+                  last_page:
+                    type: integer
+                    example: 1
+                  per_page:
+                    type: integer
+                    example: 15
+                  to:
+                    type: integer
+                    example: 1
+                  total:
+                    type: integer
+                    example: 1
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/orders?page=1'
+                      last:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/orders?page=1'
+                      prev:
+                        type: string
+                        example: null
+                        nullable: true
+                      next:
+                        type: string
+                        example: null
+                        nullable: true
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        422:
+          description: 'Invalid filter'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 422
+                  message: 'The selected status is invalid.'
+                  error:
+                    status:
+                      - 'The selected status is invalid.'
+                properties:
+                  status:
+                    type: integer
+                    example: 422
+                  message:
+                    type: string
+                    example: 'The selected status is invalid.'
+                  error:
+                    type: object
+                    properties:
+                      status:
+                        type: array
+                        example:
+                          - 'The selected status is invalid.'
+                        items:
+                          type: string
+      tags:
+        - Orders
+    post:
+      summary: 'Create an order'
+      operationId: createAnOrder
+      description: "The order starts as `pending`. Each item's subtotal and the order total are calculated on the server;\na `total` sent by the client is ignored."
+      parameters: []
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 201
+                  message: 'Created successfully'
+                  data:
+                    id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                    customer_name: 'Ali Hassan'
+                    customer_email: ali@example.com
+                    customer_phone: '+201001234567'
+                    status: pending
+                    total: '59.97'
+                    items:
+                      -
+                        id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                        product_name: Book
+                        quantity: 3
+                        price: '19.99'
+                        subtotal: '59.97'
+                    created_at: '2026-10-21T18:32:42.000000Z'
+                    updated_at: '2026-10-21T18:32:42.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 201
+                  message:
+                    type: string
+                    example: 'Created successfully'
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      customer_name:
+                        type: string
+                        example: 'Ali Hassan'
+                      customer_email:
+                        type: string
+                        example: ali@example.com
+                      customer_phone:
+                        type: string
+                        example: '+201001234567'
+                      status:
+                        type: string
+                        example: pending
+                      total:
+                        type: string
+                        example: '59.97'
+                      items:
+                        type: array
+                        example:
+                          -
+                            id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name: Book
+                            quantity: 3
+                            price: '19.99'
+                            subtotal: '59.97'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name:
+                              type: string
+                              example: Book
+                            quantity:
+                              type: integer
+                              example: 3
+                            price:
+                              type: string
+                              example: '19.99'
+                            subtotal:
+                              type: string
+                              example: '59.97'
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:32:42.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2026-10-21T18:32:42.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        422:
+          description: 'Validation error'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 422
+                  message: 'The customer name field is required.'
+                  error:
+                    customer_name:
+                      - 'The customer name field is required.'
+                    items.0.quantity:
+                      - 'The quantity of item #1 field must be at least 1.'
+                    items.0.price:
+                      - 'The price of item #1 field must have 0-2 decimal places.'
+                properties:
+                  status:
+                    type: integer
+                    example: 422
+                  message:
+                    type: string
+                    example: 'The customer name field is required.'
+                  error:
+                    type: object
+                    properties:
+                      customer_name:
+                        type: array
+                        example:
+                          - 'The customer name field is required.'
+                        items:
+                          type: string
+                      items.0.quantity:
+                        type: array
+                        example:
+                          - 'The quantity of item #1 field must be at least 1.'
+                        items:
+                          type: string
+                      items.0.price:
+                        type: array
+                        example:
+                          - 'The price of item #1 field must have 0-2 decimal places.'
+                        items:
+                          type: string
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_name:
+                  type: string
+                  description: 'Max 255 characters.'
+                  example: 'Ali Hassan'
+                customer_email:
+                  type: string
+                  description: ''
+                  example: ali@example.com
+                customer_phone:
+                  type: string
+                  description: 'Optional. Max 30 characters.'
+                  example: '+201001234567'
+                items:
+                  type: array
+                  description: '1 to 100 items.'
+                  example:
+                    - []
+                  items:
+                    type: object
+                    properties:
+                      product_name:
+                        type: string
+                        description: ''
+                        example: Book
+                      quantity:
+                        type: integer
+                        description: '1 to 10000.'
+                        example: 3
+                      price:
+                        type: number
+                        description: 'Unit price, up to 2 decimal places.'
+                        example: 19.99
+                    required:
+                      - product_name
+                      - quantity
+                      - price
+              required:
+                - customer_name
+                - customer_email
+                - items
+  '/api/v1/orders/{id}':
+    get:
+      summary: 'Show an order'
+      operationId: showAnOrder
+      description: 'One of your orders, with its items.'
+      parameters: []
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                    customer_name: 'Ali Hassan'
+                    customer_email: ali@example.com
+                    customer_phone: '+201001234567'
+                    status: confirmed
+                    total: '59.97'
+                    items:
+                      -
+                        id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                        product_name: Book
+                        quantity: 3
+                        price: '19.99'
+                        subtotal: '59.97'
+                    created_at: '2026-10-21T18:32:42.000000Z'
+                    updated_at: '2026-10-21T18:35:10.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      customer_name:
+                        type: string
+                        example: 'Ali Hassan'
+                      customer_email:
+                        type: string
+                        example: ali@example.com
+                      customer_phone:
+                        type: string
+                        example: '+201001234567'
+                      status:
+                        type: string
+                        example: confirmed
+                      total:
+                        type: string
+                        example: '59.97'
+                      items:
+                        type: array
+                        example:
+                          -
+                            id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name: Book
+                            quantity: 3
+                            price: '19.99'
+                            subtotal: '59.97'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name:
+                              type: string
+                              example: Book
+                            quantity:
+                              type: integer
+                              example: 3
+                            price:
+                              type: string
+                              example: '19.99'
+                            subtotal:
+                              type: string
+                              example: '59.97'
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:32:42.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2026-10-21T18:35:10.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's order"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Order not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+      tags:
+        - Orders
+    put:
+      summary: 'Update an order'
+      operationId: updateAnOrder
+      description: "Send only the fields you want to change (at least one).\nSending `items` replaces all current items and recalculates the total.\nUse `status` to confirm or cancel the order."
+      parameters: []
+      responses:
+        200:
+          description: Updated
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Updated successfully'
+                  data:
+                    id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                    customer_name: 'Ali Hassan'
+                    customer_email: ali@example.com
+                    customer_phone: '+201001234567'
+                    status: confirmed
+                    total: '59.97'
+                    items:
+                      -
+                        id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                        product_name: Book
+                        quantity: 3
+                        price: '19.99'
+                        subtotal: '59.97'
+                    created_at: '2026-10-21T18:32:42.000000Z'
+                    updated_at: '2026-10-21T18:35:10.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Updated successfully'
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      customer_name:
+                        type: string
+                        example: 'Ali Hassan'
+                      customer_email:
+                        type: string
+                        example: ali@example.com
+                      customer_phone:
+                        type: string
+                        example: '+201001234567'
+                      status:
+                        type: string
+                        example: confirmed
+                      total:
+                        type: string
+                        example: '59.97'
+                      items:
+                        type: array
+                        example:
+                          -
+                            id: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name: Book
+                            quantity: 3
+                            price: '19.99'
+                            subtotal: '59.97'
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              example: 01a15fbc-af64-7190-8a65-6e8f95840565
+                            product_name:
+                              type: string
+                              example: Book
+                            quantity:
+                              type: integer
+                              example: 3
+                            price:
+                              type: string
+                              example: '19.99'
+                            subtotal:
+                              type: string
+                              example: '59.97'
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:32:42.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2026-10-21T18:35:10.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's order"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Order not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+        409:
+          description: 'Order is not pending'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 409
+                  message: 'Only pending orders can have their details or items changed'
+                properties:
+                  status:
+                    type: integer
+                    example: 409
+                  message:
+                    type: string
+                    example: 'Only pending orders can have their details or items changed'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Status change not allowed'
+                    type: object
+                    example:
+                      status: 422
+                      message: 'Order status cannot change from confirmed to pending'
+                    properties:
+                      status:
+                        type: integer
+                        example: 422
+                      message:
+                        type: string
+                        example: 'Order status cannot change from confirmed to pending'
+                  -
+                    description: 'Empty update'
+                    type: object
+                    example:
+                      status: 422
+                      message: 'Send at least one field to update'
+                      error:
+                        order:
+                          - 'Send at least one field to update'
+                    properties:
+                      status:
+                        type: integer
+                        example: 422
+                      message:
+                        type: string
+                        example: 'Send at least one field to update'
+                      error:
+                        type: object
+                        properties:
+                          order:
+                            type: array
+                            example:
+                              - 'Send at least one field to update'
+                            items:
+                              type: string
+      tags:
+        - Orders
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_name:
+                  type: string
+                  description: 'Max 255 characters. Example:'
+                  example: null
+                customer_email:
+                  type: string
+                  description: 'Example:'
+                  example: null
+                customer_phone:
+                  type: string
+                  description: 'Max 30 characters. Example:'
+                  example: null
+                status:
+                  type: string
+                  description: '`pending`, `confirmed` or `cancelled`.'
+                  example: confirmed
+                items:
+                  type: array
+                  description: '1 to 100 items, each with `product_name`, `quantity` and `price` (same rules as Create). Replaces the current items. Example:'
+                  example: null
+                  items:
+                    type: object
+    delete:
+      summary: 'Delete an order'
+      operationId: deleteAnOrder
+      description: 'Deletes the order and its items. Orders that have any payment (even a failed one) cannot be deleted.'
+      parameters: []
+      responses:
+        200:
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Deleted successfully'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Deleted successfully'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's order"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Order not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+        409:
+          description: 'Order has payments'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 409
+                  message: 'Order cannot be deleted because it has payments'
+                properties:
+                  status:
+                    type: integer
+                    example: 409
+                  message:
+                    type: string
+                    example: 'Order cannot be deleted because it has payments'
+      tags:
+        - Orders
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The order ID (UUID).'
+        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+        required: true
+        schema:
+          type: string
+  '/api/v1/orders/{order_id}/payments':
+    get:
+      summary: "List an order's payments"
+      operationId: listAnOrdersPayments
+      description: 'All payment attempts for one of your orders, including failed ones.'
+      parameters:
+        -
+          in: query
+          name: page
+          description: 'Page number. Defaults to 1.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number. Defaults to 1.'
+            example: 1
+        -
+          in: query
+          name: per_page
+          description: 'Items per page, 1 to 100. Defaults to 15.'
+          example: 15
+          required: false
+          schema:
+            type: integer
+            description: 'Items per page, 1 to 100. Defaults to 15.'
+            example: 15
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    -
+                      id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                      order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      payment_method: credit_card
+                      status: successful
+                      amount: '59.97'
+                      transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                      gateway_response:
+                        gateway: credit_card
+                        card_last4: '1111'
+                        amount: '59.97'
+                        currency: USD
+                        message: Approved
+                      created_at: '2026-10-21T18:40:05.000000Z'
+                      updated_at: '2026-10-21T18:40:05.000000Z'
+                    -
+                      id: 01a15fbc-b08a-72c6-97db-9031a7da2a08
+                      order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      payment_method: credit_card
+                      status: failed
+                      amount: '59.97'
+                      transaction_id: null
+                      gateway_response:
+                        gateway: credit_card
+                        card_last4: '0002'
+                        amount: '59.97'
+                        currency: USD
+                        message: 'Card declined'
+                      created_at: '2026-10-21T18:39:51.000000Z'
+                      updated_at: '2026-10-21T18:39:51.000000Z'
+                  current_page: 1
+                  from: 1
+                  last_page: 1
+                  per_page: 15
+                  to: 2
+                  total: 2
+                  links:
+                    first: 'http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1'
+                    last: 'http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1'
+                    prev: null
+                    next: null
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                        order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method: credit_card
+                        status: successful
+                        amount: '59.97'
+                        transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                        gateway_response:
+                          gateway: credit_card
+                          card_last4: '1111'
+                          amount: '59.97'
+                          currency: USD
+                          message: Approved
+                        created_at: '2026-10-21T18:40:05.000000Z'
+                        updated_at: '2026-10-21T18:40:05.000000Z'
+                      -
+                        id: 01a15fbc-b08a-72c6-97db-9031a7da2a08
+                        order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method: credit_card
+                        status: failed
+                        amount: '59.97'
+                        transaction_id: null
+                        gateway_response:
+                          gateway: credit_card
+                          card_last4: '0002'
+                          amount: '59.97'
+                          currency: USD
+                          message: 'Card declined'
+                        created_at: '2026-10-21T18:39:51.000000Z'
+                        updated_at: '2026-10-21T18:39:51.000000Z'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                        order_id:
+                          type: string
+                          example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method:
+                          type: string
+                          example: credit_card
+                        status:
+                          type: string
+                          example: successful
+                        amount:
+                          type: string
+                          example: '59.97'
+                        transaction_id:
+                          type: string
+                          example: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                        gateway_response:
+                          type: object
+                          properties:
+                            gateway:
+                              type: string
+                              example: credit_card
+                            card_last4:
+                              type: string
+                              example: '1111'
+                            amount:
+                              type: string
+                              example: '59.97'
+                            currency:
+                              type: string
+                              example: USD
+                            message:
+                              type: string
+                              example: Approved
+                        created_at:
+                          type: string
+                          example: '2026-10-21T18:40:05.000000Z'
+                        updated_at:
+                          type: string
+                          example: '2026-10-21T18:40:05.000000Z'
+                  current_page:
+                    type: integer
+                    example: 1
+                  from:
+                    type: integer
+                    example: 1
+                  last_page:
+                    type: integer
+                    example: 1
+                  per_page:
+                    type: integer
+                    example: 15
+                  to:
+                    type: integer
+                    example: 2
+                  total:
+                    type: integer
+                    example: 2
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1'
+                      last:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1'
+                      prev:
+                        type: string
+                        example: null
+                        nullable: true
+                      next:
+                        type: string
+                        example: null
+                        nullable: true
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's order"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Order not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+      tags:
+        - Payments
+    post:
+      summary: 'Pay for an order'
+      operationId: payForAnOrder
+      description: "Charges a `confirmed` order through the chosen gateway for the order's full total.\nA declined payment is still saved (status `failed`, HTTP 201), and the order can be paid again with a new key.\n\nThe fields inside `details` depend on `payment_method`:\n- `credit_card`: `card_number`, `expiry_month`, `expiry_year`, `cvv`, `holder_name`\n- `paypal`: `paypal_email`"
+      parameters:
+        -
+          in: header
+          name: Idempotency-Key
+          description: ''
+          example: 7f9c2e4a-1b3d-4e5f-8a6b-9c0d1e2f3a4b
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Retry with the same Idempotency-Key'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: 'Payment completed successfully'
+                  data:
+                    id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                    order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                    payment_method: credit_card
+                    status: successful
+                    amount: '59.97'
+                    transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                    gateway_response:
+                      gateway: credit_card
+                      card_last4: '1111'
+                      amount: '59.97'
+                      currency: USD
+                      message: Approved
+                    created_at: '2026-10-21T18:40:05.000000Z'
+                    updated_at: '2026-10-21T18:40:05.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: 'Payment completed successfully'
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                      order_id:
+                        type: string
+                        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      payment_method:
+                        type: string
+                        example: credit_card
+                      status:
+                        type: string
+                        example: successful
+                      amount:
+                        type: string
+                        example: '59.97'
+                      transaction_id:
+                        type: string
+                        example: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                      gateway_response:
+                        type: object
+                        properties:
+                          gateway:
+                            type: string
+                            example: credit_card
+                          card_last4:
+                            type: string
+                            example: '1111'
+                          amount:
+                            type: string
+                            example: '59.97'
+                          currency:
+                            type: string
+                            example: USD
+                          message:
+                            type: string
+                            example: Approved
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:40:05.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2026-10-21T18:40:05.000000Z'
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: Paid
+                    type: object
+                    example:
+                      status: 201
+                      message: 'Payment completed successfully'
+                      data:
+                        id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                        order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method: credit_card
+                        status: successful
+                        amount: '59.97'
+                        transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                        gateway_response:
+                          gateway: credit_card
+                          card_last4: '1111'
+                          amount: '59.97'
+                          currency: USD
+                          message: Approved
+                        created_at: '2026-10-21T18:40:05.000000Z'
+                        updated_at: '2026-10-21T18:40:05.000000Z'
+                    properties:
+                      status:
+                        type: integer
+                        example: 201
+                      message:
+                        type: string
+                        example: 'Payment completed successfully'
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                          order_id:
+                            type: string
+                            example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                          payment_method:
+                            type: string
+                            example: credit_card
+                          status:
+                            type: string
+                            example: successful
+                          amount:
+                            type: string
+                            example: '59.97'
+                          transaction_id:
+                            type: string
+                            example: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                          gateway_response:
+                            type: object
+                            properties:
+                              gateway:
+                                type: string
+                                example: credit_card
+                              card_last4:
+                                type: string
+                                example: '1111'
+                              amount:
+                                type: string
+                                example: '59.97'
+                              currency:
+                                type: string
+                                example: USD
+                              message:
+                                type: string
+                                example: Approved
+                          created_at:
+                            type: string
+                            example: '2026-10-21T18:40:05.000000Z'
+                          updated_at:
+                            type: string
+                            example: '2026-10-21T18:40:05.000000Z'
+                  -
+                    description: Declined
+                    type: object
+                    example:
+                      status: 201
+                      message: 'Payment was declined'
+                      data:
+                        id: 01a15fbc-b08a-72c6-97db-9031a7da2a08
+                        order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method: credit_card
+                        status: failed
+                        amount: '59.97'
+                        transaction_id: null
+                        gateway_response:
+                          gateway: credit_card
+                          card_last4: '0002'
+                          amount: '59.97'
+                          currency: USD
+                          message: 'Card declined'
+                        created_at: '2026-10-21T18:39:51.000000Z'
+                        updated_at: '2026-10-21T18:39:51.000000Z'
+                    properties:
+                      status:
+                        type: integer
+                        example: 201
+                      message:
+                        type: string
+                        example: 'Payment was declined'
+                      data:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            example: 01a15fbc-b08a-72c6-97db-9031a7da2a08
+                          order_id:
+                            type: string
+                            example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                          payment_method:
+                            type: string
+                            example: credit_card
+                          status:
+                            type: string
+                            example: failed
+                          amount:
+                            type: string
+                            example: '59.97'
+                          transaction_id:
+                            type: string
+                            example: null
+                            nullable: true
+                          gateway_response:
+                            type: object
+                            properties:
+                              gateway:
+                                type: string
+                                example: credit_card
+                              card_last4:
+                                type: string
+                                example: '0002'
+                              amount:
+                                type: string
+                                example: '59.97'
+                              currency:
+                                type: string
+                                example: USD
+                              message:
+                                type: string
+                                example: 'Card declined'
+                          created_at:
+                            type: string
+                            example: '2026-10-21T18:39:51.000000Z'
+                          updated_at:
+                            type: string
+                            example: '2026-10-21T18:39:51.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's order"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Order not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+        409:
+          description: 'Already paid'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 409
+                  message: 'This order has already been paid'
+                properties:
+                  status:
+                    type: integer
+                    example: 409
+                  message:
+                    type: string
+                    example: 'This order has already been paid'
+        422:
+          description: ''
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  -
+                    description: 'Order not confirmed'
+                    type: object
+                    example:
+                      status: 422
+                      message: 'Payments can only be processed for confirmed orders'
+                    properties:
+                      status:
+                        type: integer
+                        example: 422
+                      message:
+                        type: string
+                        example: 'Payments can only be processed for confirmed orders'
+                  -
+                    description: 'Validation error'
+                    type: object
+                    example:
+                      status: 422
+                      message: 'The idempotency key field is required.'
+                      error:
+                        idempotency_key:
+                          - 'The idempotency key field is required.'
+                        details.cvv:
+                          - 'The details.cvv field is required.'
+                    properties:
+                      status:
+                        type: integer
+                        example: 422
+                      message:
+                        type: string
+                        example: 'The idempotency key field is required.'
+                      error:
+                        type: object
+                        properties:
+                          idempotency_key:
+                            type: array
+                            example:
+                              - 'The idempotency key field is required.'
+                            items:
+                              type: string
+                          details.cvv:
+                            type: array
+                            example:
+                              - 'The details.cvv field is required.'
+                            items:
+                              type: string
+                  -
+                    description: 'Unknown payment method'
+                    type: object
+                    example:
+                      status: 422
+                      message: 'The selected payment method is invalid.'
+                      error:
+                        payment_method:
+                          - 'The selected payment method is invalid.'
+                    properties:
+                      status:
+                        type: integer
+                        example: 422
+                      message:
+                        type: string
+                        example: 'The selected payment method is invalid.'
+                      error:
+                        type: object
+                        properties:
+                          payment_method:
+                            type: array
+                            example:
+                              - 'The selected payment method is invalid.'
+                            items:
+                              type: string
+      tags:
+        - Payments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                payment_method:
+                  type: string
+                  description: 'One of the configured gateways: `credit_card` or `paypal`.'
+                  example: credit_card
+                details:
+                  type: object
+                  description: 'Gateway-specific fields.'
+                  example: []
+                  properties:
+                    card_number:
+                      type: string
+                      description: '13 to 19 digits. Required for `credit_card`.'
+                      example: '4111111111111111'
+                    expiry_month:
+                      type: integer
+                      description: '1 to 12. Required for `credit_card`.'
+                      example: 12
+                    expiry_year:
+                      type: integer
+                      description: 'Not in the past. Required for `credit_card`.'
+                      example: 2030
+                    cvv:
+                      type: string
+                      description: '3 or 4 digits. Required for `credit_card`.'
+                      example: '123'
+                    holder_name:
+                      type: string
+                      description: 'Required for `credit_card`.'
+                      example: 'Ali Hassan'
+                    paypal_email:
+                      type: string
+                      description: 'Required for `paypal`. Example:'
+                      example: null
+              required:
+                - payment_method
+                - details
+    parameters:
+      -
+        in: path
+        name: order_id
+        description: 'The order ID (UUID).'
+        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+        required: true
+        schema:
+          type: string
+  /api/v1/payments:
+    get:
+      summary: 'List payments'
+      operationId: listPayments
+      description: 'Payments across all your orders, newest first, paginated.'
+      parameters:
+        -
+          in: query
+          name: page
+          description: 'Page number. Defaults to 1.'
+          example: 1
+          required: false
+          schema:
+            type: integer
+            description: 'Page number. Defaults to 1.'
+            example: 1
+        -
+          in: query
+          name: per_page
+          description: 'Items per page, 1 to 100. Defaults to 15.'
+          example: 15
+          required: false
+          schema:
+            type: integer
+            description: 'Items per page, 1 to 100. Defaults to 15.'
+            example: 15
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    -
+                      id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                      order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      payment_method: credit_card
+                      status: successful
+                      amount: '59.97'
+                      transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                      gateway_response:
+                        gateway: credit_card
+                        card_last4: '1111'
+                        amount: '59.97'
+                        currency: USD
+                        message: Approved
+                      created_at: '2026-10-21T18:40:05.000000Z'
+                      updated_at: '2026-10-21T18:40:05.000000Z'
+                  current_page: 1
+                  from: 1
+                  last_page: 1
+                  per_page: 15
+                  to: 1
+                  total: 1
+                  links:
+                    first: 'http://localhost:8000/api/v1/payments?page=1'
+                    last: 'http://localhost:8000/api/v1/payments?page=1'
+                    prev: null
+                    next: null
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: array
+                    example:
+                      -
+                        id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                        order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method: credit_card
+                        status: successful
+                        amount: '59.97'
+                        transaction_id: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                        gateway_response:
+                          gateway: credit_card
+                          card_last4: '1111'
+                          amount: '59.97'
+                          currency: USD
+                          message: Approved
+                        created_at: '2026-10-21T18:40:05.000000Z'
+                        updated_at: '2026-10-21T18:40:05.000000Z'
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                        order_id:
+                          type: string
+                          example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                        payment_method:
+                          type: string
+                          example: credit_card
+                        status:
+                          type: string
+                          example: successful
+                        amount:
+                          type: string
+                          example: '59.97'
+                        transaction_id:
+                          type: string
+                          example: cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13
+                        gateway_response:
+                          type: object
+                          properties:
+                            gateway:
+                              type: string
+                              example: credit_card
+                            card_last4:
+                              type: string
+                              example: '1111'
+                            amount:
+                              type: string
+                              example: '59.97'
+                            currency:
+                              type: string
+                              example: USD
+                            message:
+                              type: string
+                              example: Approved
+                        created_at:
+                          type: string
+                          example: '2026-10-21T18:40:05.000000Z'
+                        updated_at:
+                          type: string
+                          example: '2026-10-21T18:40:05.000000Z'
+                  current_page:
+                    type: integer
+                    example: 1
+                  from:
+                    type: integer
+                    example: 1
+                  last_page:
+                    type: integer
+                    example: 1
+                  per_page:
+                    type: integer
+                    example: 15
+                  to:
+                    type: integer
+                    example: 1
+                  total:
+                    type: integer
+                    example: 1
+                  links:
+                    type: object
+                    properties:
+                      first:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/payments?page=1'
+                      last:
+                        type: string
+                        example: 'http://localhost:8000/api/v1/payments?page=1'
+                      prev:
+                        type: string
+                        example: null
+                        nullable: true
+                      next:
+                        type: string
+                        example: null
+                        nullable: true
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+      tags:
+        - Payments
+  '/api/v1/payments/{id}':
+    get:
+      summary: 'Show a payment'
+      operationId: showAPayment
+      description: 'One payment that belongs to one of your orders.'
+      parameters: []
+      responses:
+        200:
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 200
+                  message: Success
+                  data:
+                    id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                    order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                    payment_method: paypal
+                    status: successful
+                    amount: '59.97'
+                    transaction_id: pp_a7619984-e5b5-4ad7-8ab7-00134378d34c
+                    gateway_response:
+                      gateway: paypal
+                      payer_email: buyer@example.com
+                      amount: '59.97'
+                      currency: USD
+                      message: Approved
+                    created_at: '2026-10-21T18:40:05.000000Z'
+                    updated_at: '2026-10-21T18:40:05.000000Z'
+                properties:
+                  status:
+                    type: integer
+                    example: 200
+                  message:
+                    type: string
+                    example: Success
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+                      order_id:
+                        type: string
+                        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+                      payment_method:
+                        type: string
+                        example: paypal
+                      status:
+                        type: string
+                        example: successful
+                      amount:
+                        type: string
+                        example: '59.97'
+                      transaction_id:
+                        type: string
+                        example: pp_a7619984-e5b5-4ad7-8ab7-00134378d34c
+                      gateway_response:
+                        type: object
+                        properties:
+                          gateway:
+                            type: string
+                            example: paypal
+                          payer_email:
+                            type: string
+                            example: buyer@example.com
+                          amount:
+                            type: string
+                            example: '59.97'
+                          currency:
+                            type: string
+                            example: USD
+                          message:
+                            type: string
+                            example: Approved
+                      created_at:
+                        type: string
+                        example: '2026-10-21T18:40:05.000000Z'
+                      updated_at:
+                        type: string
+                        example: '2026-10-21T18:40:05.000000Z'
+        401:
+          description: 'Missing or invalid token'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 401
+                  message: 'Unauthenticated, please login first'
+                properties:
+                  status:
+                    type: integer
+                    example: 401
+                  message:
+                    type: string
+                    example: 'Unauthenticated, please login first'
+        403:
+          description: "Someone else's payment"
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 403
+                  message: "You don't have permission to access this resource"
+                properties:
+                  status:
+                    type: integer
+                    example: 403
+                  message:
+                    type: string
+                    example: "You don't have permission to access this resource"
+        404:
+          description: 'Payment not found'
+          content:
+            application/json:
+              schema:
+                type: object
+                example:
+                  status: 404
+                  message: 'Resource not found'
+                properties:
+                  status:
+                    type: integer
+                    example: 404
+                  message:
+                    type: string
+                    example: 'Resource not found'
+      tags:
+        - Payments
+    parameters:
+      -
+        in: path
+        name: id
+        description: 'The payment ID (UUID).'
+        example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+        required: true
+        schema:
+          type: string

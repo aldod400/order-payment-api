@@ -1,0 +1,626 @@
+name: Payments
+description: |-
+
+  Pay for confirmed orders and view payments. Gateways are simulated:
+
+  - `credit_card`: a card number ending in `0002` is declined; any other card is approved.
+  - `paypal`: an email ending in `@decline.test` is declined; any other email is approved.
+
+  Every payment request needs an `Idempotency-Key` header. Retrying with the same key returns the
+  original payment (200) and never charges twice.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/orders/{order_id}/payments'
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Pay for confirmed orders and view payments. Gateways are simulated:
+
+        - `credit_card`: a card number ending in `0002` is declined; any other card is approved.
+        - `paypal`: an email ending in `@decline.test` is declined; any other email is approved.
+
+        Every payment request needs an `Idempotency-Key` header. Retrying with the same key returns the
+        original payment (200) and never charges twice.
+      subgroup: ''
+      subgroupDescription: ''
+      title: "List an order's payments"
+      description: 'All payment attempts for one of your orders, including failed ones.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      order_id:
+        custom: []
+        name: order_id
+        description: 'The order ID (UUID).'
+        required: true
+        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+    queryParameters:
+      page:
+        custom: []
+        name: page
+        description: 'Page number. Defaults to 1.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Items per page, 1 to 100. Defaults to 15.'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      page: 1
+      per_page: 15
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Success",
+            "data": [
+              {
+                "id": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+                "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                "payment_method": "credit_card",
+                "status": "successful",
+                "amount": "59.97",
+                "transaction_id": "cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13",
+                "gateway_response": {"gateway": "credit_card", "card_last4": "1111", "amount": "59.97", "currency": "USD", "message": "Approved"},
+                "created_at": "2026-10-21T18:40:05.000000Z",
+                "updated_at": "2026-10-21T18:40:05.000000Z"
+              },
+              {
+                "id": "01a15fbc-b08a-72c6-97db-9031a7da2a08",
+                "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                "payment_method": "credit_card",
+                "status": "failed",
+                "amount": "59.97",
+                "transaction_id": null,
+                "gateway_response": {"gateway": "credit_card", "card_last4": "0002", "amount": "59.97", "currency": "USD", "message": "Card declined"},
+                "created_at": "2026-10-21T18:39:51.000000Z",
+                "updated_at": "2026-10-21T18:39:51.000000Z"
+              }
+            ],
+            "current_page": 1,
+            "from": 1,
+            "last_page": 1,
+            "per_page": 15,
+            "to": 2,
+            "total": 2,
+            "links": {
+              "first": "http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1",
+              "last": "http://localhost:8000/api/v1/orders/01a15fbc-af62-704f-8643-f69b490d1ea9/payments?page=1",
+              "prev": null,
+              "next": null
+            }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+      -
+        custom: []
+        status: 403
+        content: '{"status": 403, "message": "You don''t have permission to access this resource"}'
+        headers: []
+        description: "Someone else's order"
+      -
+        custom: []
+        status: 404
+        content: '{"status": 404, "message": "Resource not found"}'
+        headers: []
+        description: 'Order not found'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/orders/{order_id}/payments'
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Pay for confirmed orders and view payments. Gateways are simulated:
+
+        - `credit_card`: a card number ending in `0002` is declined; any other card is approved.
+        - `paypal`: an email ending in `@decline.test` is declined; any other email is approved.
+
+        Every payment request needs an `Idempotency-Key` header. Retrying with the same key returns the
+        original payment (200) and never charges twice.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Pay for an order'
+      description: |-
+        Charges a `confirmed` order through the chosen gateway for the order's full total.
+        A declined payment is still saved (status `failed`, HTTP 201), and the order can be paid again with a new key.
+
+        The fields inside `details` depend on `payment_method`:
+        - `credit_card`: `card_number`, `expiry_month`, `expiry_year`, `cvv`, `holder_name`
+        - `paypal`: `paypal_email`
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Idempotency-Key: 7f9c2e4a-1b3d-4e5f-8a6b-9c0d1e2f3a4b
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      order_id:
+        custom: []
+        name: order_id
+        description: 'The order ID (UUID).'
+        required: true
+        example: 01a15fbc-af62-704f-8643-f69b490d1ea9
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      order_id: 01a15fbc-af62-704f-8643-f69b490d1ea9
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      payment_method:
+        custom: []
+        name: payment_method
+        description: 'One of the configured gateways: `credit_card` or `paypal`.'
+        required: true
+        example: credit_card
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details:
+        custom: []
+        name: details
+        description: 'Gateway-specific fields.'
+        required: true
+        example: []
+        type: object
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      details.card_number:
+        custom: []
+        name: details.card_number
+        description: '13 to 19 digits. Required for `credit_card`.'
+        required: false
+        example: '4111111111111111'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details.expiry_month:
+        custom: []
+        name: details.expiry_month
+        description: '1 to 12. Required for `credit_card`.'
+        required: false
+        example: 12
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details.expiry_year:
+        custom: []
+        name: details.expiry_year
+        description: 'Not in the past. Required for `credit_card`.'
+        required: false
+        example: 2030
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details.cvv:
+        custom: []
+        name: details.cvv
+        description: '3 or 4 digits. Required for `credit_card`.'
+        required: false
+        example: '123'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details.holder_name:
+        custom: []
+        name: details.holder_name
+        description: 'Required for `credit_card`.'
+        required: false
+        example: 'Ali Hassan'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      details.paypal_email:
+        custom: []
+        name: details.paypal_email
+        description: 'Required for `paypal`. Example:'
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      payment_method: credit_card
+      details:
+        card_number: '4111111111111111'
+        expiry_month: 12
+        expiry_year: 2030
+        cvv: '123'
+        holder_name: 'Ali Hassan'
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Payment completed successfully",
+            "data": {
+              "id": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+              "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+              "payment_method": "credit_card",
+              "status": "successful",
+              "amount": "59.97",
+              "transaction_id": "cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13",
+              "gateway_response": {"gateway": "credit_card", "card_last4": "1111", "amount": "59.97", "currency": "USD", "message": "Approved"},
+              "created_at": "2026-10-21T18:40:05.000000Z",
+              "updated_at": "2026-10-21T18:40:05.000000Z"
+            }
+          }
+        headers: []
+        description: 'Retry with the same Idempotency-Key'
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "status": 201,
+            "message": "Payment completed successfully",
+            "data": {
+              "id": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+              "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+              "payment_method": "credit_card",
+              "status": "successful",
+              "amount": "59.97",
+              "transaction_id": "cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13",
+              "gateway_response": {"gateway": "credit_card", "card_last4": "1111", "amount": "59.97", "currency": "USD", "message": "Approved"},
+              "created_at": "2026-10-21T18:40:05.000000Z",
+              "updated_at": "2026-10-21T18:40:05.000000Z"
+            }
+          }
+        headers: []
+        description: Paid
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "status": 201,
+            "message": "Payment was declined",
+            "data": {
+              "id": "01a15fbc-b08a-72c6-97db-9031a7da2a08",
+              "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+              "payment_method": "credit_card",
+              "status": "failed",
+              "amount": "59.97",
+              "transaction_id": null,
+              "gateway_response": {"gateway": "credit_card", "card_last4": "0002", "amount": "59.97", "currency": "USD", "message": "Card declined"},
+              "created_at": "2026-10-21T18:39:51.000000Z",
+              "updated_at": "2026-10-21T18:39:51.000000Z"
+            }
+          }
+        headers: []
+        description: Declined
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+      -
+        custom: []
+        status: 403
+        content: '{"status": 403, "message": "You don''t have permission to access this resource"}'
+        headers: []
+        description: "Someone else's order"
+      -
+        custom: []
+        status: 404
+        content: '{"status": 404, "message": "Resource not found"}'
+        headers: []
+        description: 'Order not found'
+      -
+        custom: []
+        status: 409
+        content: '{"status": 409, "message": "This order has already been paid"}'
+        headers: []
+        description: 'Already paid'
+      -
+        custom: []
+        status: 422
+        content: '{"status": 422, "message": "Payments can only be processed for confirmed orders"}'
+        headers: []
+        description: 'Order not confirmed'
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "status": 422,
+            "message": "The idempotency key field is required.",
+            "error": {
+              "idempotency_key": ["The idempotency key field is required."],
+              "details.cvv": ["The details.cvv field is required."]
+            }
+          }
+        headers: []
+        description: 'Validation error'
+      -
+        custom: []
+        status: 422
+        content: '{"status": 422, "message": "The selected payment method is invalid.", "error": {"payment_method": ["The selected payment method is invalid."]}}'
+        headers: []
+        description: 'Unknown payment method'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/payments
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Pay for confirmed orders and view payments. Gateways are simulated:
+
+        - `credit_card`: a card number ending in `0002` is declined; any other card is approved.
+        - `paypal`: an email ending in `@decline.test` is declined; any other email is approved.
+
+        Every payment request needs an `Idempotency-Key` header. Retrying with the same key returns the
+        original payment (200) and never charges twice.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List payments'
+      description: 'Payments across all your orders, newest first, paginated.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters:
+      page:
+        custom: []
+        name: page
+        description: 'Page number. Defaults to 1.'
+        required: false
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      per_page:
+        custom: []
+        name: per_page
+        description: 'Items per page, 1 to 100. Defaults to 15.'
+        required: false
+        example: 15
+        type: integer
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanQueryParameters:
+      page: 1
+      per_page: 15
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Success",
+            "data": [
+              {
+                "id": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+                "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+                "payment_method": "credit_card",
+                "status": "successful",
+                "amount": "59.97",
+                "transaction_id": "cc_3f1c9b2e-7d4a-4c8e-9b1f-2a6d5e8c0f13",
+                "gateway_response": {"gateway": "credit_card", "card_last4": "1111", "amount": "59.97", "currency": "USD", "message": "Approved"},
+                "created_at": "2026-10-21T18:40:05.000000Z",
+                "updated_at": "2026-10-21T18:40:05.000000Z"
+              }
+            ],
+            "current_page": 1,
+            "from": 1,
+            "last_page": 1,
+            "per_page": 15,
+            "to": 1,
+            "total": 1,
+            "links": {
+              "first": "http://localhost:8000/api/v1/payments?page=1",
+              "last": "http://localhost:8000/api/v1/payments?page=1",
+              "prev": null,
+              "next": null
+            }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/payments/{id}'
+    metadata:
+      custom: []
+      groupName: Payments
+      groupDescription: |-
+
+        Pay for confirmed orders and view payments. Gateways are simulated:
+
+        - `credit_card`: a card number ending in `0002` is declined; any other card is approved.
+        - `paypal`: an email ending in `@decline.test` is declined; any other email is approved.
+
+        Every payment request needs an `Idempotency-Key` header. Retrying with the same key returns the
+        original payment (200) and never charges twice.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Show a payment'
+      description: 'One payment that belongs to one of your orders.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      id:
+        custom: []
+        name: id
+        description: 'The payment ID (UUID).'
+        required: true
+        example: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      id: 01a15fbc-b0c1-73f3-8faf-84d0b62179b8
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Success",
+            "data": {
+              "id": "01a15fbc-b0c1-73f3-8faf-84d0b62179b8",
+              "order_id": "01a15fbc-af62-704f-8643-f69b490d1ea9",
+              "payment_method": "paypal",
+              "status": "successful",
+              "amount": "59.97",
+              "transaction_id": "pp_a7619984-e5b5-4ad7-8ab7-00134378d34c",
+              "gateway_response": {"gateway": "paypal", "payer_email": "buyer@example.com", "amount": "59.97", "currency": "USD", "message": "Approved"},
+              "created_at": "2026-10-21T18:40:05.000000Z",
+              "updated_at": "2026-10-21T18:40:05.000000Z"
+            }
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+      -
+        custom: []
+        status: 403
+        content: '{"status": 403, "message": "You don''t have permission to access this resource"}'
+        headers: []
+        description: "Someone else's payment"
+      -
+        custom: []
+        status: 404
+        content: '{"status": 404, "message": "Resource not found"}'
+        headers: []
+        description: 'Payment not found'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

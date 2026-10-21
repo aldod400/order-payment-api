@@ -26,6 +26,7 @@ class PaymentFactory extends Factory
             'amount' => fake()->randomFloat(2, 10, 1000),
             'transaction_id' => 'txn_'.fake()->unique()->uuid(),
             'gateway_response' => ['message' => 'Approved'],
+            'idempotency_key' => fake()->uuid(),
         ];
     }
 

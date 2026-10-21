@@ -1,0 +1,383 @@
+name: Authentication
+description: |-
+
+  Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+  Login and register are limited to 5 requests per minute per IP.
+endpoints:
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/register
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+        Login and register are limited to 5 requests per minute per IP.
+      subgroup: ''
+      subgroupDescription: ''
+      title: Register
+      description: 'Create an account and receive a JWT straight away.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Full name. Max 255 characters.'
+        required: true
+        example: 'Ali Hassan'
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'A unique email address.'
+        required: true
+        example: ali@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      password:
+        custom: []
+        name: password
+        description: 'At least 8 characters, with letters and numbers.'
+        required: true
+        example: secret123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      password_confirmation:
+        custom: []
+        name: password_confirmation
+        description: 'Must match `password`.'
+        required: true
+        example: secret123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: 'Ali Hassan'
+      email: ali@example.com
+      password: secret123
+      password_confirmation: secret123
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 201
+        content: |-
+          {
+            "status": 201,
+            "message": "Registered successfully",
+            "data": {
+              "user": {"id": "9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12", "name": "Ali Hassan", "email": "ali@example.com", "created_at": "2026-10-21T18:32:42.000000Z"},
+              "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature",
+              "token_type": "bearer",
+              "expires_in": 3600
+            }
+          }
+        headers: []
+        description: Registered
+      -
+        custom: []
+        status: 422
+        content: |-
+          {
+            "status": 422,
+            "message": "The email has already been taken.",
+            "error": {
+              "email": ["The email has already been taken."],
+              "password": ["The password field must contain at least one number."]
+            }
+          }
+        headers: []
+        description: 'Validation error'
+      -
+        custom: []
+        status: 429
+        content: '{"status": 429, "message": "Too many requests, please try again later"}'
+        headers: []
+        description: 'Too many attempts'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/login
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+        Login and register are limited to 5 requests per minute per IP.
+      subgroup: ''
+      subgroupDescription: ''
+      title: Login
+      description: 'Exchange email and password for a JWT.'
+      authenticated: false
+      deprecated: false
+    headers:
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      email:
+        custom: []
+        name: email
+        description: ''
+        required: true
+        example: ali@example.com
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+      password:
+        custom: []
+        name: password
+        description: ''
+        required: true
+        example: secret123
+        type: string
+        enumValues: []
+        exampleWasSpecified: true
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      email: ali@example.com
+      password: secret123
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Logged in successfully",
+            "data": {
+              "user": {"id": "9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12", "name": "Ali Hassan", "email": "ali@example.com", "created_at": "2026-10-21T18:32:42.000000Z"},
+              "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZDhmMWU2MiJ9.signature",
+              "token_type": "bearer",
+              "expires_in": 3600
+            }
+          }
+        headers: []
+        description: 'Logged in'
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Invalid email or password"}'
+        headers: []
+        description: 'Wrong email or password'
+      -
+        custom: []
+        status: 422
+        content: '{"status": 422, "message": "The email field is required.", "error": {"email": ["The email field is required."]}}'
+        headers: []
+        description: 'Validation error'
+      -
+        custom: []
+        status: 429
+        content: '{"status": 429, "message": "Too many requests, please try again later"}'
+        headers: []
+        description: 'Too many attempts'
+    responseFields: []
+    auth: []
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/refresh
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+        Login and register are limited to 5 requests per minute per IP.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Refresh token'
+      description: |-
+        Exchange the current token (even an expired one, inside the refresh window) for a new one.
+        The old token stops working.
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Token refreshed successfully",
+            "data": {
+              "user": {"id": "9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12", "name": "Ali Hassan", "email": "ali@example.com", "created_at": "2026-10-21T18:32:42.000000Z"},
+              "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJuZXcifQ.signature",
+              "token_type": "bearer",
+              "expires_in": 3600
+            }
+          }
+        headers: []
+        description: Refreshed
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Token missing, invalid or already used'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/auth/me
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+        Login and register are limited to 5 requests per minute per IP.
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Current user'
+      description: 'Return the user who owns the token.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: |-
+          {
+            "status": 200,
+            "message": "Success",
+            "data": {"id": "9d8f1e62-3c4b-7a1e-9f2a-6b7c8d9e0f12", "name": "Ali Hassan", "email": "ali@example.com", "created_at": "2026-10-21T18:32:42.000000Z"}
+          }
+        headers: []
+        description: Success
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: api/v1/auth/logout
+    metadata:
+      custom: []
+      groupName: Authentication
+      groupDescription: |-
+
+        Register, log in and manage your JWT. Send the token as `Authorization: Bearer {token}` on every other endpoint.
+        Login and register are limited to 5 requests per minute per IP.
+      subgroup: ''
+      subgroupDescription: ''
+      title: Logout
+      description: 'Invalidate the current token.'
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_JWT_TOKEN}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 200
+        content: '{"status": 200, "message": "Logged out successfully"}'
+        headers: []
+        description: 'Logged out'
+      -
+        custom: []
+        status: 401
+        content: '{"status": 401, "message": "Unauthenticated, please login first"}'
+        headers: []
+        description: 'Missing or invalid token'
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null

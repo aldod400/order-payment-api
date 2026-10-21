@@ -43,8 +43,8 @@ return [
         INTRO,
 
     // The base URL displayed in the docs.
-    // If you're using `laravel` type, you can set this to a dynamic string, like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
-    'base_url' => '{{ config("app.url") }}',
+    // A plain URL (not '{{ config(...) }}') so the exported Postman collection works as-is.
+    'base_url' => env('APP_URL', 'http://localhost:8000'),
 
     // Routes to include in the docs
     'routes' => [
@@ -144,7 +144,7 @@ return [
         'placeholder' => '{YOUR_JWT_TOKEN}',
 
         // Any extra authentication-related info for your users. Markdown and HTML are supported.
-        'extra_info' => 'Obtain a JWT by calling <code>POST /api/auth/login</code>, then send it as <code>Authorization: Bearer {token}</code>.<br><br>Default admin account (seeded): <code>admin@admin.com</code> / <code>123456#Aa@</code>',
+        'extra_info' => 'Get a JWT from <code>POST /api/v1/auth/register</code> or <code>POST /api/v1/auth/login</code>, then send it as <code>Authorization: Bearer {token}</code>.',
     ],
 
     // Example requests for each endpoint will be shown in each of these languages.
@@ -164,7 +164,30 @@ return [
         'enabled' => true,
 
         'overrides' => [
-            // 'info.version' => '2.0.0',
+            // Use the {{token}} collection variable for every authenticated request.
+            'auth' => [
+                'type' => 'bearer',
+                'bearer' => [['key' => 'token', 'value' => '{{token}}', 'type' => 'string']],
+            ],
+            'variable' => [
+                ['id' => 'baseUrl', 'key' => 'baseUrl', 'type' => 'string', 'value' => env('APP_URL', 'http://localhost:8000')],
+                ['id' => 'token', 'key' => 'token', 'type' => 'string', 'value' => ''],
+            ],
+            // After Register, Login or Refresh, save the returned token into {{token}} automatically.
+            'event' => [[
+                'listen' => 'test',
+                'script' => [
+                    'type' => 'text/javascript',
+                    'exec' => [
+                        'try {',
+                        '    const body = pm.response.json();',
+                        '    if (body && body.data && body.data.token) {',
+                        "        pm.collectionVariables.set('token', body.data.token);",
+                        '    }',
+                        '} catch (e) {}',
+                    ],
+                ],
+            ]],
         ],
     ],
 
@@ -248,21 +271,20 @@ return [
         'urlParameters' => [
             ...Defaults::URL_PARAMETERS_STRATEGIES,
         ],
+        // Parameters come only from the @queryParam / @bodyParam tags in the controllers,
+        // so examples are realistic and headers (Idempotency-Key) are not listed as body fields.
         'queryParameters' => [
-            ...Defaults::QUERY_PARAMETERS_STRATEGIES,
+            Strategies\QueryParameters\GetFromQueryParamAttribute::class,
+            Strategies\QueryParameters\GetFromQueryParamTag::class,
         ],
         'bodyParameters' => [
-            ...Defaults::BODY_PARAMETERS_STRATEGIES,
+            Strategies\BodyParameters\GetFromBodyParamAttribute::class,
+            Strategies\BodyParameters\GetFromBodyParamTag::class,
         ],
-        'responses' => configureStrategy(
+        // Examples come only from the @response tags in the controllers; no real requests are made.
+        'responses' => removeStrategies(
             Defaults::RESPONSES_STRATEGIES,
-            Strategies\Responses\ResponseCalls::withSettings(
-                only: ['GET *'],
-                // Recommended: disable debug mode in response calls to avoid error stack traces in responses
-                config: [
-                    'app.debug' => false,
-                ]
-            )
+            [Strategies\Responses\ResponseCalls::class],
         ),
         'responseFields' => [
             ...Defaults::RESPONSE_FIELDS_STRATEGIES,
