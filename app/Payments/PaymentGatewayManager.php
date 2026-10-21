@@ -17,7 +17,8 @@ final class PaymentGatewayManager implements PaymentGatewayManagerInterface
     public function __construct(
         private readonly Container $container,
         private readonly Config $config,
-    ) {}
+    ) {
+    }
 
     public function resolve(string $method): PaymentGatewayInterface
     {

@@ -15,7 +15,8 @@ final readonly class UpdateOrderDTO
         public ?string $customerPhone,
         public ?OrderStatus $status,
         public ?array $items,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  list<OrderItemDTO>|null  $items

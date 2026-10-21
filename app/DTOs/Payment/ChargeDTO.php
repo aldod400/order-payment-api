@@ -16,5 +16,6 @@ final readonly class ChargeDTO
         public string $currency,
         public string $idempotencyKey,
         public array $details,
-    ) {}
+    ) {
+    }
 }

@@ -16,7 +16,8 @@ final readonly class PaymentResultDTO
         public PaymentStatus $status,
         public ?string $transactionId,
         public array $response,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  array<string, mixed>  $response

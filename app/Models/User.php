@@ -17,7 +17,9 @@ use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUuids, Notifiable;
+    use HasFactory;
+    use HasUuids;
+    use Notifiable;
 
     /**
      * Get the attributes that should be cast.

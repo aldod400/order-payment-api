@@ -11,5 +11,6 @@ final readonly class AuthTokenDTO
         public string $token,
         public string $tokenType,
         public int $expiresIn,
-    ) {}
+    ) {
+    }
 }

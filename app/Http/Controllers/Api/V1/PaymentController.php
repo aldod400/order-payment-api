@@ -29,7 +29,9 @@ use Illuminate\Support\Facades\Gate;
  */
 class PaymentController extends Controller
 {
-    public function __construct(private readonly PaymentServiceInterface $paymentService) {}
+    public function __construct(private readonly PaymentServiceInterface $paymentService)
+    {
+    }
 
     /**
      * List payments

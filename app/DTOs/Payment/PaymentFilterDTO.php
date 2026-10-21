@@ -8,7 +8,8 @@ final readonly class PaymentFilterDTO
         public string $userId,
         public ?string $orderId,
         public int $perPage,
-    ) {}
+    ) {
+    }
 
     public static function fromRequest(string $userId, ?string $orderId, int $perPage): self
     {

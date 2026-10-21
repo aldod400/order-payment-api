@@ -12,7 +12,8 @@ final readonly class ProcessPaymentDTO
         public string $paymentMethod,
         public string $idempotencyKey,
         public array $details,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  array<string, mixed>  $details

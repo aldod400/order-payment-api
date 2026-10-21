@@ -8,7 +8,8 @@ final readonly class OrderItemDTO
         public string $productName,
         public int $quantity,
         public string $price,
-    ) {}
+    ) {
+    }
 
     public static function fromRequest(string $productName, int $quantity, string $price): self
     {

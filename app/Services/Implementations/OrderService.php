@@ -33,7 +33,8 @@ class OrderService implements OrderServiceInterface
         private readonly OrderRepositoryInterface $orderRepo,
         private readonly OrderItemRepositoryInterface $orderItemRepo,
         private readonly PaymentRepositoryInterface $paymentRepo,
-    ) {}
+    ) {
+    }
 
     public function list(OrderFilterDTO $filter): LengthAwarePaginator
     {
@@ -73,7 +74,7 @@ class OrderService implements OrderServiceInterface
                 || $dto->items !== null;
 
             if ($changesDetails && $order->status !== OrderStatus::PENDING) {
-                throw new OrderNotEditableException;
+                throw new OrderNotEditableException();
             }
 
             $data = array_filter([
@@ -109,7 +110,7 @@ class OrderService implements OrderServiceInterface
             $order = $this->orderRepo->findForUpdate($order->id);
 
             if ($this->paymentRepo->existsForOrder($order->id)) {
-                throw new OrderHasPaymentsException;
+                throw new OrderHasPaymentsException();
             }
 
             $this->orderRepo->delete($order);

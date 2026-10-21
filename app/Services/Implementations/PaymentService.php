@@ -26,7 +26,8 @@ class PaymentService implements PaymentServiceInterface
         private readonly OrderRepositoryInterface $orderRepo,
         private readonly PaymentRepositoryInterface $paymentRepo,
         private readonly PaymentGatewayManagerInterface $gateways,
-    ) {}
+    ) {
+    }
 
     public function list(PaymentFilterDTO $filter): LengthAwarePaginator
     {
@@ -47,11 +48,11 @@ class PaymentService implements PaymentServiceInterface
             }
 
             if ($order->status !== OrderStatus::CONFIRMED) {
-                throw new OrderNotConfirmedException;
+                throw new OrderNotConfirmedException();
             }
 
             if ($this->paymentRepo->hasActivePayment($order->id)) {
-                throw new OrderAlreadyPaidException;
+                throw new OrderAlreadyPaidException();
             }
 
             return $this->paymentRepo->create([

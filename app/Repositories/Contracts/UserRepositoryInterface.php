@@ -6,4 +6,6 @@ use App\Repositories\Eloquent\UserRepository;
 use Illuminate\Container\Attributes\Bind;
 
 #[Bind(UserRepository::class)]
-interface UserRepositoryInterface extends BaseRepositoryInterface {}
+interface UserRepositoryInterface extends BaseRepositoryInterface
+{
+}

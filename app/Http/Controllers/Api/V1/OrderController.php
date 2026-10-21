@@ -28,7 +28,9 @@ use Illuminate\Support\Facades\Gate;
  */
 class OrderController extends Controller
 {
-    public function __construct(private readonly OrderServiceInterface $orderService) {}
+    public function __construct(private readonly OrderServiceInterface $orderService)
+    {
+    }
 
     /**
      * List orders

@@ -7,7 +7,8 @@ final readonly class LoginDTO
     public function __construct(
         public string $email,
         public string $password,
-    ) {}
+    ) {
+    }
 
     public static function fromRequest(string $email, string $password): self
     {

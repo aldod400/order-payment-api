@@ -13,7 +13,8 @@ final readonly class CreateOrderDTO
         public string $customerEmail,
         public ?string $customerPhone,
         public array $items,
-    ) {}
+    ) {
+    }
 
     /**
      * @param  list<OrderItemDTO>  $items

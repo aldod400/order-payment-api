@@ -18,7 +18,8 @@ class AuthService implements AuthServiceInterface
     public function __construct(
         private readonly UserRepositoryInterface $userRepo,
         #[Auth('api')] private readonly JWTGuard $guard,
-    ) {}
+    ) {
+    }
 
     public function register(RegisterDTO $dto): AuthTokenDTO
     {
@@ -41,7 +42,7 @@ class AuthService implements AuthServiceInterface
         ]);
 
         if (! $token) {
-            throw new InvalidCredentialsException;
+            throw new InvalidCredentialsException();
         }
 
         $user = $this->guard->user();

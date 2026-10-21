@@ -12,7 +12,9 @@ abstract class AbstractPaymentGateway implements PaymentGatewayInterface
     /**
      * @param  array<string, mixed>  $config
      */
-    public function __construct(protected readonly array $config) {}
+    public function __construct(protected readonly array $config)
+    {
+    }
 
     protected function config(string $key, mixed $default = null): mixed
     {

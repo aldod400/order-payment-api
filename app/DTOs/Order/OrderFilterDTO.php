@@ -10,7 +10,8 @@ final readonly class OrderFilterDTO
         public string $userId,
         public ?OrderStatus $status,
         public int $perPage,
-    ) {}
+    ) {
+    }
 
     public static function fromRequest(string $userId, ?OrderStatus $status, int $perPage): self
     {
